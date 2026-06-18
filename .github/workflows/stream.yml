@@ -1,17 +1,31 @@
 name: Start Stream
 on:
   repository_dispatch:
-    types: [start-stream]
+    types: [start-stream, stop-stream] # এখানে stop-stream ইভেন্ট যুক্ত করা হয়েছে
+
+# কনকারেন্সি গ্রুপ তৈরি করা হলো (একই গ্রুপে নতুন রান আসলে আগের রান অটোমেটিক বন্ধ হবে)
+concurrency:
+  group: youtube-live-stream
+  cancel-in-progress: true
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
+      # যদি স্টপ ইভেন্ট আসে, তবে এটি রান হয়ে কাজ শেষ করে দেবে (চলমান লাইভ অলরেডি বন্ধ হয়ে যাবে)
+      - name: Handle Stop Signal
+        if: github.event.action == 'stop-stream'
+        run: echo "Stop signal received. Active stream has been terminated successfully."
+
+      # শুধুমাত্র start-stream ইভেন্ট আসলেই ওয়াটারমার্ক ডাউনলোড হবে
       - name: Download Watermark
+        if: github.event.action == 'start-stream'
         run: wget -O watermark.gif https://images.ahyancreations.top/watch.gif
 
+      # শুধুমাত্র start-stream ইভেন্ট আসলেই লাইভ স্ট্রিম শুরু হবে
       - name: Start Stream
+        if: github.event.action == 'start-stream'
         run: |
           VIDEO_URL="${{ github.event.client_payload.video_url }}"
           STREAM_KEY="${{ github.event.client_payload.stream_key }}"
