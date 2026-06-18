@@ -16,10 +16,10 @@ jobs:
         if: github.event.action == 'stop-stream'
         run: echo "Stop signal received. Active stream has been terminated."
 
-      # এটি মাত্র ৫ সেকেন্ডে এফএফএমপেক ইনস্টল করে ফেলবে (সময় বাঁচবে)
+      # সঠিক এবং অফিশিয়াল অ্যাকশন রেপো
       - name: Setup FFmpeg
         if: github.event.action == 'start-stream'
-        uses: federico-terzi/setup-ffmpeg@v1
+        uses: FedericoCarboni/setup-ffmpeg@v3
 
       - name: Download Watermark
         if: github.event.action == 'start-stream'
@@ -33,7 +33,9 @@ jobs:
 
           echo "Starting stream: $VIDEO_URL"
 
+          # এখানে আরকাইভ ডট অর্গের জন্য -user_agent যুক্ত করা হয়েছে
           ffmpeg -re \
+            -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
             -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
             -stream_loop -1 -i "$VIDEO_URL" \
             -ignore_loop 0 -i watermark.gif \
