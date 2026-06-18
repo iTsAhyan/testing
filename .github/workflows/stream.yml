@@ -16,10 +16,12 @@ jobs:
         if: github.event.action == 'stop-stream'
         run: echo "Stop signal received. Active stream has been terminated."
 
-      # সঠিক এবং অফিশিয়াল অ্যাকশন রেপো
+      # এখানে আমরা স্পেসিফিকভাবে স্টেবল ভার্সন '6.1.1' লক করে দিচ্ছি যেন ক্র্যাশ না করে
       - name: Setup FFmpeg
         if: github.event.action == 'start-stream'
         uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: '6.1.1'
 
       - name: Download Watermark
         if: github.event.action == 'start-stream'
@@ -33,13 +35,13 @@ jobs:
 
           echo "Starting stream: $VIDEO_URL"
 
-          # এখানে আরকাইভ ডট অর্গের জন্য -user_agent যুক্ত করা হয়েছে
+          # filter_complex অংশটি সহজ ও ক্র্যাশ-ফ্রি করা হয়েছে
           ffmpeg -re \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
             -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
             -stream_loop -1 -i "$VIDEO_URL" \
             -ignore_loop 0 -i watermark.gif \
-            -filter_complex "[1:v][0:v]scale2ref=w=iw*0.15:h=ow/mdar[wm][v0];[v0][wm]overlay=W-w-10:H-h-10:format=auto,format=yuv420p[v]" \
+            -filter_complex "[1:v]scale=180:-1[wm];[0:v][wm]overlay=W-w-10:H-h-10:format=auto,format=yuv420p[v]" \
             -map "[v]" -map 0:a? \
             -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
             -g 60 -pix_fmt yuv420p \
