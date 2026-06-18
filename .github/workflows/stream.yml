@@ -1,0 +1,32 @@
+name: Start Stream
+on:
+  repository_dispatch:
+    types: [start-stream]
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Download Watermark
+        run: wget -O watermark.gif https://images.ahyancreations.top/watch.gif
+
+      - name: Start Stream
+        run: |
+          VIDEO_URL="${{ github.event.client_payload.video_url }}"
+          STREAM_KEY="${{ github.event.client_payload.stream_key }}"
+
+          echo "Starting stream: $VIDEO_URL"
+
+          ffmpeg -re \
+            -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
+            -stream_loop -1 -i "$VIDEO_URL" \
+            -ignore_loop 0 -i watermark.gif \
+            -filter_complex "[1:v][0:v]scale2ref=w=iw*0.15:h=ow/mdar[wm][v0];[v0][wm]overlay=W-w-10:H-h-10:format=auto,format=yuv420p[v]" \
+            -map "[v]" -map 0:a? \
+            -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+            -g 60 -pix_fmt yuv420p \
+            -c:a aac -b:a 128k -ar 44100 \
+            -t 5:55:00 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+            
